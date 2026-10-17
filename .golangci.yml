@@ -1,0 +1,37 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+    - errorlint
+    - gocritic
+    - unparam
+    - misspell
+    - copyloopvar
+    - testifylint
+    - usetesting
+  settings:
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    staticcheck:
+      checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022", "-ST1005"]
+  exclusions:
+    generated: strict
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    gofumpt:
+      module-path: scoped-mcp
+    goimports:
+      local-prefixes:
+        - scoped-mcp
