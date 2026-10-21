@@ -73,6 +73,7 @@ func TestCreateIssue(t *testing.T) {
 		{name: "ошибка клиента пробрасывается", args: epicArgs(), expect: expectCreate(epicRequest, jira.ErrUnauthorized), wantErr: jira.ErrUnauthorized},
 
 		{name: "чужой проект", args: withArg(epicArgs(), "project", "SECRET"), wantErr: tools.ErrProjectNotAllowed},
+		{name: "проект без типов", args: withArg(taskArgs(), "project", "SUPPORT"), wantErr: tools.ErrProjectNotAllowed},
 		{name: "без project", args: withoutArg(epicArgs(), "project"), wantErr: tools.ErrFieldRequired},
 		{name: "project не строка", args: withArg(epicArgs(), "project", 1), wantErr: tools.ErrFieldValue},
 		{name: "тип другого проекта", args: withArg(epicArgs(), "issue_type", "Task"), wantErr: tools.ErrIssueTypeNotAllowed},

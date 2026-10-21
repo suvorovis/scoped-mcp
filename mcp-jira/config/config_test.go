@@ -147,7 +147,13 @@ func TestValidate(t *testing.T) {
 		{name: "повтор ключа проекта", mutate: func(cfg *Config) {
 			cfg.Projects = append(cfg.Projects, Project{Key: "PROJ", IssueTypes: []IssueType{{Name: "Task", ID: "1"}}})
 		}, wantErr: ErrDuplicateProject},
-		{name: "проект без типов", mutate: func(cfg *Config) { cfg.Projects[0].IssueTypes = nil }, wantErr: ErrNoIssueTypes},
+		{name: "единственный проект без типов", mutate: func(cfg *Config) { cfg.Projects[0].IssueTypes = nil }, wantErr: ErrNoIssueTypes},
+		{name: "второй проект без типов допустим", mutate: func(cfg *Config) {
+			cfg.Projects = append(cfg.Projects, Project{Key: "SUPPORT"})
+		}},
+		{name: "assign_to_self у проекта без типов", mutate: func(cfg *Config) {
+			cfg.Projects = append(cfg.Projects, Project{Key: "SUPPORT", AssignToSelf: true})
+		}, wantErr: ErrCreateIssueSettings},
 		{name: "тип без имени", mutate: func(cfg *Config) { cfg.Projects[0].IssueTypes[0].Name = "" }, wantErr: ErrIssueTypeName},
 		{name: "тип без id", mutate: func(cfg *Config) { cfg.Projects[0].IssueTypes[0].ID = "" }, wantErr: ErrIssueTypeID},
 		{name: "повтор имени типа в проекте", mutate: func(cfg *Config) { cfg.Projects[0].IssueTypes[1].Name = "Epic" }, wantErr: ErrDuplicateIssueType},

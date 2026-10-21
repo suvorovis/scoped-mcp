@@ -166,7 +166,7 @@ var (
 	ErrNoProjects         = errors.New("config: projects list is empty")
 	ErrProjectKey         = errors.New("config: invalid project key")
 	ErrDuplicateProject   = errors.New("config: duplicate project key")
-	ErrNoIssueTypes       = errors.New("config: project has no issue types")
+	ErrNoIssueTypes       = errors.New("config: tools.create_issue needs issue_types in at least one project")
 	ErrIssueTypeName      = errors.New("config: issue type name is empty")
 	ErrIssueTypeID        = errors.New("config: issue type id is empty")
 	ErrDuplicateIssueType = errors.New("config: duplicate issue type name or id within a project")
@@ -291,8 +291,11 @@ func (c Config) validate() error {
 	if err := validateFields(c.Fields); err != nil {
 		return err
 	}
-	if err := validateProjects(c.Projects, c.Fields, c.Tools.CreateIssue); err != nil {
+	if err := validateProjects(c.Projects, c.Fields); err != nil {
 		return err
+	}
+	if c.Tools.CreateIssue && !c.anyProjectHasIssueTypes() {
+		return ErrNoIssueTypes
 	}
 	if c.Tools.AttachFiles {
 		if err := c.Attachments.validate(); err != nil {
@@ -339,10 +342,12 @@ func (c Config) anyProjectHasUpdateFields() bool {
 	return slices.ContainsFunc(c.Projects, func(project Project) bool { return len(project.UpdateFields) > 0 })
 }
 
+func (c Config) anyProjectHasIssueTypes() bool {
+	return slices.ContainsFunc(c.Projects, Project.HasIssueTypes)
+}
+
 func (c Config) hasCreateIssueSettings() bool {
-	return slices.ContainsFunc(c.Projects, func(project Project) bool {
-		return len(project.IssueTypes) > 0 || project.AssignToSelf
-	})
+	return c.anyProjectHasIssueTypes() || slices.ContainsFunc(c.Projects, func(project Project) bool { return project.AssignToSelf })
 }
 
 func (a Attachments) validate() error {
@@ -549,7 +554,7 @@ func validateFields(fields map[string]Field) error {
 	return nil
 }
 
-func validateProjects(projects []Project, fields map[string]Field, issueTypesRequired bool) error {
+func validateProjects(projects []Project, fields map[string]Field) error {
 	if len(projects) == 0 {
 		return ErrNoProjects
 	}
@@ -562,16 +567,16 @@ func validateProjects(projects []Project, fields map[string]Field, issueTypesReq
 			return fmt.Errorf("%w: %s", ErrDuplicateProject, project.Key)
 		}
 		seen[project.Key] = struct{}{}
-		if err := validateProject(project, fields, issueTypesRequired); err != nil {
+		if err := validateProject(project, fields); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func validateProject(project Project, fields map[string]Field, issueTypesRequired bool) error {
-	if issueTypesRequired && len(project.IssueTypes) == 0 {
-		return fmt.Errorf("%w: %s", ErrNoIssueTypes, project.Key)
+func validateProject(project Project, fields map[string]Field) error {
+	if project.AssignToSelf && !project.HasIssueTypes() {
+		return fmt.Errorf("%w: %s has assign_to_self without issue_types", ErrCreateIssueSettings, project.Key)
 	}
 	seenNames := make(map[string]struct{}, len(project.IssueTypes))
 	seenIDs := make(map[string]struct{}, len(project.IssueTypes))
@@ -629,6 +634,10 @@ func (c Config) FindIssueLink(relation string) (IssueLink, bool) {
 		}
 	}
 	return IssueLink{}, false
+}
+
+func (p Project) HasIssueTypes() bool {
+	return len(p.IssueTypes) > 0
 }
 
 func (p Project) FindIssueType(name string) (IssueType, bool) {

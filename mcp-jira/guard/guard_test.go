@@ -32,6 +32,7 @@ var allowedConfig = config.Config{
 			{Name: "Story", ID: "11203", Fields: []string{"priority", "epic_link"}},
 		}},
 		{Key: "OTHER", IssueTypes: []config.IssueType{{Name: "Task", ID: "3"}}},
+		{Key: "SUPPORT"},
 	},
 }
 
@@ -331,6 +332,7 @@ func TestRoundTripCommentTarget(t *testing.T) {
 	}{
 		{name: "POST комментария к задаче проекта из конфига", cfg: withAddComment(), method: http.MethodPost, url: commentAPIURL, wantAllowed: true},
 		{name: "задача второго проекта из конфига", cfg: withAddComment(), method: http.MethodPost, url: issueURL + "/OTHER-1/comment", wantAllowed: true},
+		{name: "задача проекта без типов", cfg: withAddComment(), method: http.MethodPost, url: issueURL + "/SUPPORT-1/comment", wantAllowed: true},
 		{name: "base_url с путём", cfg: withAddCommentAndBasePathJira(), method: http.MethodPost, url: "https://jira.example.com/jira/rest/api/2/issue/PROJ-7790/comment", wantAllowed: true},
 		{name: "заголовок Host совпадает с base_url", cfg: withAddComment(), method: http.MethodPost, url: commentAPIURL, host: "jira.example.com", wantAllowed: true},
 		{name: "включён только add_comment", cfg: withOnlyAddCommentEnabled(), method: http.MethodPost, url: commentAPIURL, wantAllowed: true},
@@ -809,6 +811,7 @@ func TestRoundTripBody(t *testing.T) {
 		{name: "fields повторяется", body: `{"fields":{"project":{"key":"SECRET"},"issuetype":{"id":"10000"},"summary":"s"},"fields":{"project":{"key":"PROJ"},"issuetype":{"id":"10000"},"summary":"s"}}`},
 		{name: "без project", body: `{"fields":{"issuetype":{"id":"10000"},"summary":"s"}}`},
 		{name: "чужой проект", body: `{"fields":{"project":{"key":"SECRET"},"issuetype":{"id":"10000"},"summary":"s"}}`},
+		{name: "проект без типов", body: `{"fields":{"project":{"key":"SUPPORT"},"issuetype":{"id":"3"},"summary":"s"}}`},
 		{name: "project повторяется", body: `{"fields":{"project":{"key":"SECRET"},"project":{"key":"PROJ"},"issuetype":{"id":"10000"},"summary":"s"}}`},
 		{name: "project с лишним ключом", body: `{"fields":{"project":{"key":"PROJ","id":"1"},"issuetype":{"id":"10000"},"summary":"s"}}`},
 		{name: "key в project повторяется", body: `{"fields":{"project":{"key":"SECRET","key":"PROJ"},"issuetype":{"id":"10000"},"summary":"s"}}`},

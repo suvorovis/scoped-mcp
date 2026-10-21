@@ -99,7 +99,7 @@ cat ~/.config/mcp-jira/config.yaml
 
 Чтобы разрешить другой проект, тип, поле или отношение:
 
-- проект или тип — добавить в `projects` запись с ключом проекта, именем и ID типа; ID типа — через `jira_get_project_issue_types` в MCP `jira-readonly`;
+- проект или тип — добавить в `projects` запись с ключом проекта, именем и ID типа; ID типа — через `jira_get_project_issue_types` в MCP `jira-readonly`; проект только для комментариев, вложений и связей — запись из одного `key`;
 - каталог или расширение для вложений — дописать в `attachments.dirs` или `attachments.extensions`; предел `max_bytes` — не больше 20 MiB; каталог не должен давать доступ к домашнему каталогу: корень, `~`, `~/..`, `/Users` отклоняются при загрузке конфига, а файл из домашнего каталога, видимый через такой каталог под другим путём (например, через `/System/Volumes` на macOS), — при вызове инструмента;
 - поле — сначала описать его в `fields` (ID кастомного поля — через `jira_search_fields` в MCP `jira-readonly`), потом добавить в список `fields` типа: поле, которого нет в `fields`, разрешить типу нельзя;
 - изменяемое поле — так же описать его в `fields` и добавить в `update_fields` проекта;
@@ -358,7 +358,8 @@ security unlock-keychain ~/Library/Keychains/scoped-mcp.keychain-db
 | `config: issue_links direction must be outward or inward` | `direction` не `outward` и не `inward`: поправить `issue_links` (шаг 2). |
 | `config: tools.update_issue and a non-empty update_fields in at least one project must be set together` | Есть `update_issue: true`, но ни у одного проекта нет непустого `update_fields`, или наоборот: добавить недостающее или убрать оба (шаг 2). |
 | `config: fields are used only by tools.create_issue and tools.update_issue` | `create_issue` и `update_issue` выключены, а в конфиге остался раздел `fields`: включить нужный инструмент или удалить `fields`. |
-| `config: issue_types and assign_to_self are used only by tools.create_issue` | `create_issue` выключен, а у проектов остались `issue_types` или `assign_to_self`: включить `create_issue` или удалить их. |
+| `config: issue_types and assign_to_self are used only by tools.create_issue` | `create_issue` выключен, а у проектов остались `issue_types` или `assign_to_self`: включить `create_issue` или удалить их. Или `assign_to_self` у проекта без `issue_types`: удалить `assign_to_self`. |
+| `config: tools.create_issue needs issue_types in at least one project` | `create_issue` включён, но ни у одного проекта нет `issue_types`: добавить тип хотя бы одному проекту или выключить `create_issue` (шаг 2). |
 | `config: attachments.dirs must be non-empty, each absolute or starting with ~/, none giving access to the home directory` | Каталог в `attachments.dirs` пустой, относительный, корень, домашний или выше домашнего: указать в конфиге каталог внутри домашнего, например `~/agent-out` (шаг 2). |
 | `config: secrets must be env, file or keychain` | Опечатка в `secrets`. Если после текста идёт `keychain: not supported on this platform` — режим `keychain` есть только на macOS, выбрать `file` или `env`. |
 | `config: secrets_dir and keychain_path must be absolute or start with ~/` | Относительный или пустой путь, голый `~` или `~user/…` в `secrets_dir` или `keychain_path`: указать абсолютный путь или `~/…`, либо убрать ключ — тогда действует значение по умолчанию. |

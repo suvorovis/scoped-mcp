@@ -99,7 +99,7 @@ issue_links:
 - `secrets` — `env` (по умолчанию), `file` или `keychain` (только macOS), иначе `ErrSecretsMode`; `secrets_dir` и `keychain_path` — см. «Хранение токена».
 - `tools` — какие инструменты включены (см. «Инструмент»): `create_issue`, `attach_files`, `add_comment`, `link_issues` и `update_issue`, по умолчанию все `false`. Должен быть включён хотя бы один. Выключенного инструмента нет в списке, и guard не пропускает его запросы.
 - `fields` — общий словарь полей для `create_issue` и `update_issue`: из него разрешаются поля типам задач (`issue_types[].fields`) и полям изменения (`update_fields`). Ключ — имя параметра инструмента `create_issue` и `update_issue` (см. «Инструмент»), `jira` — ID поля в Jira, `kind` — как значение превращается в JSON, `required` — поле обязательно у каждого типа, которому оно разрешено.
-- `projects` — разрешённые проекты для всех инструментов; у каждого — разрешённые типы: имя (его передают в параметре `issue_type`), ID типа в Jira (строка в кавычках) и список полей из `fields`. `issue_types` и `assign_to_self` нужны только `create_issue`, `update_fields` — только `update_issue`: без них (при `attach_files`, `add_comment` и `link_issues`) проект задаётся одним `key`, например `projects: [{key: PROJ}]`. У `add_comment` других настроек нет.
+- `projects` — разрешённые проекты для всех инструментов; у проекта для `create_issue` — разрешённые типы: имя (его передают в параметре `issue_type`), ID типа в Jira (строка в кавычках) и список полей из `fields`. `issue_types` и `assign_to_self` нужны только `create_issue`, `update_fields` — только `update_issue`: без них проект задаётся одним `key` и доступен только `attach_files`, `add_comment` и `link_issues`, например `projects: [{key: PROJ}]`; проекта без `issue_types` в `create_issue` нет. У `add_comment` других настроек нет.
 - `update_fields` у проекта — ключи из `fields`, которые `update_issue` может менять у задач этого проекта; `required` при изменении не учитывается. Пример — `epic_link: {jira: customfield_10201, kind: issue_key}` в `fields` и `update_fields: [epic_link]` у PROJ: перенос задачи между эпиками и удаление из эпика. Проект без `update_fields` задаётся как обычно, но изменить у его задач ничего нельзя. При `update_issue` без `create_issue` проекту хватает `key` и `update_fields`, например `projects: [{key: PROJ, update_fields: [epic_link]}]`.
 - `assign_to_self` (по умолчанию `false`) — назначать задачи проекта на владельца токена. Перед первым созданием такой задачи сервер узнаёт логин владельца запросом `GET /rest/api/2/myself`, запоминает его до конца работы процесса и передаёт в Jira `"assignee": {"name": "<логин>"}`. Без этого ключа сервер `assignee` не передаёт, и Jira ставит исполнителя по умолчанию для проекта. Указать другого исполнителя нельзя: параметра `assignee` у инструмента нет.
 - `summary` в `fields` не описывается: это базовый параметр инструмента, обязательный всегда.
@@ -126,12 +126,12 @@ issue_links:
 - `tools.link_issues: true` и непустой раздел `issue_links` — только вместе (`ErrIssueLinksSection`, `tools.link_issues and a non-empty issue_links section must be set together`);
 - `tools.update_issue: true` и непустой `update_fields` хотя бы у одного проекта — только вместе (`ErrUpdateIssueFields`, `tools.update_issue and a non-empty update_fields in at least one project must be set together`);
 - без `tools.create_issue: true` и без `tools.update_issue: true` `fields` пуст (`ErrFieldsSettings`, `fields are used only by tools.create_issue and tools.update_issue`);
-- без `tools.create_issue: true` у проектов нет `issue_types` и `assign_to_self: true` (`ErrCreateIssueSettings`, `issue_types and assign_to_self are used only by tools.create_issue`);
+- без `tools.create_issue: true` у проектов нет `issue_types` и `assign_to_self: true`, а `assign_to_self: true` бывает только у проекта с `issue_types` (`ErrCreateIssueSettings`, `issue_types and assign_to_self are used only by tools.create_issue`);
 - `base_url` — абсолютный `https`-URL без userinfo (`user@`, `user:password@`), query и fragment; завершающий `/` отбрасывается;
 - `secrets` — `env`, `file` или `keychain`, `keychain` — только на macOS (`ErrSecretsMode`);
 - `secrets_dir` и `keychain_path` — абсолютный путь или путь, начинающийся с `~/` (`ErrSecretsPath`); относительный и пустой путь, голый `~` и `~user/…` отклоняются, даже если хранилище не используется выбранным режимом;
 - `projects` не пуст, ключи уникальны и соответствуют `^[A-Z][A-Z0-9_]+$`;
-- при `tools.create_issue: true` у проекта есть хотя бы один тип (`ErrNoIssueTypes`); у типа непустые имя и ID; имена и ID типов в проекте уникальны;
+- при `tools.create_issue: true` непустой `issue_types` хотя бы у одного проекта (`ErrNoIssueTypes`, `tools.create_issue needs issue_types in at least one project`); у типа непустые имя и ID; имена и ID типов в проекте уникальны;
 - каждое поле типа и каждый ключ `update_fields` описаны в `fields` (`ErrUnknownField`, `issue type or update_fields refers to a field missing from fields`) и не повторяются в пределах типа или `update_fields` (`ErrDuplicateField`, `duplicate field within an issue type or update_fields`);
 - `kind` из таблицы; два ключа `fields` не ссылаются на одно поле Jira;
 - `jira` не пуст и не равен служебным полям Jira `project`, `issuetype`, `summary`, `issuelinks`, `assignee`: `project`, `issuetype` и `summary` сервер заполняет сам, `assignee` — только по `assign_to_self`, `issuelinks` меняет другие задачи;
@@ -177,12 +177,12 @@ macOS даёт доступ к элементу без диалога тольк
 
 | Параметр | Тип | Обязательный |
 |---|---|---|
-| `project` | строка, enum ключей `projects` | да |
+| `project` | строка, enum ключей проектов с непустым `issue_types` | да |
 | `issue_type` | строка, enum имён типов всех проектов | да |
 | `summary` | строка, не короче 1 символа | да |
 | поля из `fields` | по `kind`: строка или массив строк | по `required` для выбранного типа |
 
-Описание инструмента собирается из конфига: для каждого проекта — его типы, для каждого типа — поля с их `kind`, обязательные помечены `*`; у проектов с `assign_to_self` — пометка `(issues are assigned to the token owner, i.e. the user)`; в конце — форма значения для каждого `kind`. Описание нужно потому, что схема не может выразить, какие типы есть у какого проекта и какие поля у какого типа.
+Описание инструмента собирается из конфига: для каждого проекта с непустым `issue_types` — его типы, для каждого типа — поля с их `kind`, обязательные помечены `*`; у проектов с `assign_to_self` — пометка `(issues are assigned to the token owner, i.e. the user)`; в конце — форма значения для каждого `kind`. Описание нужно потому, что схема не может выразить, какие типы есть у какого проекта и какие поля у какого типа.
 
 Ответ при успехе: `{"key": "PROJ-7790", "url": "https://jira.example.com/browse/PROJ-7790"}`.
 
@@ -191,7 +191,7 @@ macOS даёт доступ к элементу без диалога тольк
 1. MCP SDK сверяет их со схемой: enum `project` и `issue_type`, типы значений, непустой `summary`, отсутствие параметров вне схемы. Ошибка начинается с `validating "arguments"`.
 2. Инструмент сверяет их с конфигом (повторно, независимо от схемы) в таком порядке; ошибки — `tools.Err…`:
    1. `project` передан и является строкой (`ErrFieldRequired`, `ErrFieldValue`);
-   2. проект есть в конфиге (`ErrProjectNotAllowed`, `project is not allowed by the config`);
+   2. проект есть в конфиге и у него непустой `issue_types` (`ErrProjectNotAllowed`, `project is not allowed by the config`);
    3. `issue_type` передан и является строкой (`ErrFieldRequired`, `ErrFieldValue`);
    4. тип разрешён в этом проекте (`ErrIssueTypeNotAllowed`, `issue type is not allowed for this project`). Схема перечисляет типы всех проектов одним списком, поэтому тип другого проекта проходит этап 1 и отсекается только здесь;
    5. `summary` передан, является строкой и не пуст после обрезки пробелов (`ErrFieldRequired`, `required field is empty`; не строка — `ErrFieldValue`);

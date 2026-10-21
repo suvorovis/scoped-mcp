@@ -110,7 +110,7 @@ func (t *Toolset) buildCreateRequest(args map[string]any) (jira.CreateRequest, e
 		return jira.CreateRequest{}, err
 	}
 	project, ok := t.cfg.FindProject(projectKey)
-	if !ok {
+	if !ok || !project.HasIssueTypes() {
 		return jira.CreateRequest{}, fmt.Errorf("%w: %q", ErrProjectNotAllowed, projectKey)
 	}
 	issueTypeName, err := baseParam(args, paramIssueType)

@@ -27,6 +27,7 @@ var toolConfig = config.Config{
 			{Name: "История", ID: "11203", Fields: []string{"description", "priority", "labels", "epic_link"}},
 		}},
 		{Key: "OTHER", IssueTypes: []config.IssueType{{Name: "Task", ID: "3"}}},
+		{Key: "SUPPORT"},
 	},
 }
 
@@ -81,7 +82,7 @@ func TestAttachFilesInputSchema(t *testing.T) {
 
 func TestAttachFilesDescription(t *testing.T) {
 	want := "Attach local files to an existing Jira issue in https://jira.example.com.\n" +
-		"issue_key: key of an issue in project PROJ or OTHER, e.g. PROJ-123; numeric issue IDs are not accepted.\n" +
+		"issue_key: key of an issue in project PROJ or OTHER or SUPPORT, e.g. PROJ-123; numeric issue IDs are not accepted.\n" +
 		"paths: absolute or ~/ paths of regular files inside /home/bot/out or /var/reports (symlinks are resolved, the file name is taken from the resolved file); " +
 		"extensions: .md, .PNG (any letter case); at most 10485760 bytes per file.\n" +
 		"All paths are checked before anything is uploaded. The tool uploads one file per request; already attached files are not deduplicated."
@@ -106,7 +107,7 @@ func TestAddCommentInputSchema(t *testing.T) {
 
 func TestAddCommentDescription(t *testing.T) {
 	want := "Add a comment to an existing Jira issue in https://jira.example.com.\n" +
-		"issue_key: key of an issue in project PROJ or OTHER, e.g. PROJ-123; numeric issue IDs are not accepted.\n" +
+		"issue_key: key of an issue in project PROJ or OTHER or SUPPORT, e.g. PROJ-123; numeric issue IDs are not accepted.\n" +
 		"body: comment text in Jira wiki markup (h3. heading, *bold*, {code}...{code}, [text|url]); must not be blank.\n" +
 		"If the error says the comment was sent but Jira did not confirm it, the comment may have been added: " +
 		"Jira does not deduplicate comments, so check the issue before retrying."
@@ -133,7 +134,7 @@ func TestLinkIssuesInputSchema(t *testing.T) {
 func TestLinkIssuesDescription(t *testing.T) {
 	want := "Link two existing Jira issues in https://jira.example.com. The link reads \"issue_key relation target_key\": " +
 		"issue_key=PROJ-123, relation=blocks, target_key=PROJ-124 means PROJ-123 blocks PROJ-124.\n" +
-		"issue_key, target_key: keys of two different issues in project PROJ or OTHER, e.g. PROJ-123; numeric issue IDs are not accepted.\n" +
+		"issue_key, target_key: keys of two different issues in project PROJ or OTHER or SUPPORT, e.g. PROJ-123; numeric issue IDs are not accepted.\n" +
 		"relation: one of \"blocks\", \"is blocked by\", \"relates to\".\n" +
 		"If the error says the link was sent but Jira did not confirm it, the link may have been created: check the issue before retrying."
 

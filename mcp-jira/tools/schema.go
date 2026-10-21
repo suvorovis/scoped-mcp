@@ -29,7 +29,7 @@ var baseParams = []string{paramProject, paramIssueType, paramSummary}
 func CreateIssueInputSchema(cfg config.Config) *jsonschema.Schema {
 	summaryMinLength := 1
 	properties := map[string]*jsonschema.Schema{
-		paramProject:   {Type: "string", Enum: projectKeys(cfg), Description: "Key of the project to create the issue in"},
+		paramProject:   {Type: "string", Enum: creatableProjectKeys(cfg), Description: "Key of the project to create the issue in"},
 		paramIssueType: {Type: "string", Enum: issueTypeNames(cfg), Description: "Issue type name; must be allowed for the chosen project, see the tool description"},
 		paramSummary:   {Type: "string", MinLength: &summaryMinLength, Description: "Issue summary (title)"},
 	}
@@ -78,9 +78,9 @@ func fieldDescription(field config.Field) string {
 	return fmt.Sprintf("Jira field %s (%s)", field.Jira, field.Kind)
 }
 
-func projectKeys(cfg config.Config) []any {
+func creatableProjectKeys(cfg config.Config) []any {
 	keys := make([]any, 0, len(cfg.Projects))
-	for _, project := range cfg.Projects {
+	for _, project := range projectsWithIssueTypes(cfg) {
 		keys = append(keys, project.Key)
 	}
 	return keys
@@ -104,7 +104,7 @@ func issueTypeNames(cfg config.Config) []any {
 func CreateIssueDescription(cfg config.Config) string {
 	var text strings.Builder
 	fmt.Fprintf(&text, "Create one Jira issue in %s. Only the projects and issue types listed below are allowed; each issue type accepts only its listed fields (* = required). %s is always required.\n", cfg.BaseURL, paramSummary)
-	for _, project := range cfg.Projects {
+	for _, project := range projectsWithIssueTypes(cfg) {
 		fmt.Fprintf(&text, "Project %s%s:\n", project.Key, assignmentNote(project))
 		for _, issueType := range project.IssueTypes {
 			fmt.Fprintf(&text, "- %s: %s\n", issueType.Name, fieldList(cfg, issueType))
@@ -303,6 +303,12 @@ func UpdateIssueDescription(cfg config.Config) string {
 	text.WriteString(fieldValueShapes())
 	text.WriteString("\nThe update is idempotent: if the error says Jira did not confirm the update, it is safe to retry.")
 	return text.String()
+}
+
+func projectsWithIssueTypes(cfg config.Config) []config.Project {
+	return slices.DeleteFunc(slices.Clone(cfg.Projects), func(project config.Project) bool {
+		return !project.HasIssueTypes()
+	})
 }
 
 func projectsWithUpdateFields(cfg config.Config) []config.Project {
